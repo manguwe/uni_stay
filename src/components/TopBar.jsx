@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
+import { useClickOutside } from '../hooks/useClickOutside'
 
 export default function TopBar({ onToggleSidebar }) {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen)
 
   const initial = (profile?.full_name || user?.email || '?').charAt(0).toUpperCase()
 
@@ -42,7 +46,7 @@ export default function TopBar({ onToggleSidebar }) {
         </button>
 
         {user ? (
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100"

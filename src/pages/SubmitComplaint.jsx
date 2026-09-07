@@ -160,7 +160,7 @@ export default function SubmitComplaint() {
         <BackButton label="Back to My Complaints" />
         <h1 className="text-2xl mb-1">Submit a Complaint</h1>
         <p className="text-body/70 text-sm">
-          Goes to your hostel's chairperson first, per the escalation path (KB §11).
+          Goes to your hostel's chairperson first for review.
         </p>
       </div>
 

@@ -90,7 +90,9 @@ export default function Sidebar({ open, onClose }) {
     return (
       <>
         <NavGroup title="Main" items={MAIN_ITEMS} onNavigate={onNavigate} />
-        <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} onNavigate={onNavigate} />
+        {(!profile || profile.role === 'student') && (
+          <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} onNavigate={onNavigate} />
+        )}
         {profile?.role === 'chairperson' && (
           <NavGroup title="Chairperson" items={CHAIRPERSON_ITEMS} onNavigate={onNavigate} />
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   fetchMyNotifications,
@@ -6,13 +6,17 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '../lib/notifications'
+import { useClickOutside } from '../hooks/useClickOutside'
 
 export default function NotificationBell() {
   const navigate = useNavigate()
+  const containerRef = useRef(null)
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  useClickOutside(containerRef, () => setOpen(false), open)
 
   useEffect(() => {
     fetchUnreadCount().then(setUnreadCount).catch(() => {})
@@ -48,7 +52,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={toggleOpen}
         className="p-2 rounded-btn hover:bg-gray-100 relative"
@@ -63,7 +67,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-surface border border-border rounded-btn shadow-lg z-30">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] max-h-96 overflow-y-auto bg-surface border border-border rounded-btn shadow-lg z-30">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <span className="text-sm font-semibold text-heading">Notifications</span>
             {unreadCount > 0 && (
@@ -87,7 +91,7 @@ export default function NotificationBell() {
                   n.read ? '' : 'bg-info-bg/30'
                 }`}
               >
-                <p className="text-sm text-body">{n.message}</p>
+                <p className="text-sm text-body break-words">{n.message}</p>
                 <p className="text-xs text-body/40 mt-0.5">{new Date(n.created_at).toLocaleString()}</p>
               </button>
             ))}

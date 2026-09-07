@@ -155,8 +155,8 @@ export default function ApplyForRoom() {
       <div className="mb-6">
         <h1 className="text-2xl mb-1">Apply For A Room</h1>
         <p className="text-body/70 text-sm">
-          Choose where you'd like to stay. Staff will review and allocate — see KB §4, this
-          doesn't book the bed for you directly.
+          Choose where you'd like to stay. Staff will review and allocate — this doesn't book the
+          bed for you directly.
         </p>
       </div>
 

@@ -767,3 +767,88 @@ report's own list of exceptions.
 - [ ] **Back buttons:** confirm at least 3 of the 9 listed screens now
       show a working "← Back" that returns to wherever you came from.
 
+---
+
+## Fix batch: leaked copy, patron applications, sidebar clutter, dropdowns
+
+(Chairperson's "not assigned to this hostel" recurrence — deferred per
+request, not addressed in this batch.)
+
+### 1. Leaked developer language — every string changed
+
+| File | Before | After |
+|---|---|---|
+| `admin/UserManagement.jsx` | "Change roles and hostel assignments — this replaces the manual SQL promotion process used in earlier phases." | "Manage user roles and hostel assignments for staff accounts." |
+| `admin/AllComplaints.jsx` | "...still appends to the complaint's timeline (via `admin_override_complaint()`), so the audit trail stays complete even for admin actions." | "Admin actions are still recorded in the complaint's history, so nothing is lost." |
+| `Profile.jsx` | "...matches you to the correct gender-designated hostel (KB §8a)." | "...matches you to the correct gender-designated hostel." |
+| `SubmitComplaint.jsx` | "Goes to your hostel's chairperson first, per the escalation path (KB §11)." | "Goes to your hostel's chairperson first for review." |
+| `ApplyForRoom.jsx` | "...see KB §4, this doesn't book the bed for you directly." | "...this doesn't book the bed for you directly." |
+| `admin/EditUserModal.jsx` | "...see staff_hostel_assignments in the Phase 3 SQL for why this is a join table, not a single column." | "A chairperson/patron can be assigned to more than one hostel." |
+
+Audited every page subtitle, empty state, tooltip, and helper string
+against the pattern list (function/table names, "Phase N," "KB §," SQL,
+migrations) — these 6 were the only actual matches. Everything else that
+matched the search terms was in a `//` code comment, which is never
+rendered to a user, so left as-is.
+
+### 2. (Skipped per request)
+
+### 3. Patron/Matron Applications — root cause found and fixed
+
+The application data was **already correctly filtered by hostel** (Phase
+6's RLS). The bug was one level deeper: `hostel_applications`' query
+embeds the applicant's profile
+(`profiles!hostel_applications_student_id_fkey(...)`), and PostgREST
+enforces that embedded table's RLS independently of the parent row.
+`profiles` only ever had `"Users can view own profile"` and `"Admins can
+view all profiles"` — no policy let chairperson/patron_matron see an
+applicant's profile at all, so the embed silently returned null instead
+of erroring. Patron's Review Queue cards were rendering with blank name/
+student ID/gender while the applications themselves were already there —
+exactly matching "less detail than Admin's." One new policy
+(`supabase/phase7_staff_visibility_fix.sql`) fixes this for Applications,
+Payment Verification, and complaint cards simultaneously, since all three
+embed profiles the same way. The component reuse itself was already
+correct — `ReviewQueue.jsx` is the literal same component/file at both
+`/admin/applications` and `/patron/applications`, confirmed unchanged.
+
+### 4. Sidebar — student nav gated by role
+
+```diff
+  <NavGroup title="Main" items={MAIN_ITEMS} onNavigate={onNavigate} />
+- <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} onNavigate={onNavigate} />
++ {(!profile || profile.role === 'student') && (
++   <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} onNavigate={onNavigate} />
++ )}
+```
+
+`!profile` (not just `role === 'student'`) keeps anonymous browsing
+working — KB §7 allows exploring hostels without logging in, and an
+anonymous visitor has no profile row at all.
+
+### 5. Dropdown fixes
+
+- New `src/hooks/useClickOutside.js` — one hook, used by both
+  `NotificationBell.jsx` and `TopBar.jsx`'s avatar menu.
+- Notification dropdown width changed from a fixed `w-80` (320px, could
+  push past the left edge of a narrow phone since the bell isn't the
+  rightmost element in the bar) to `w-[min(20rem,calc(100vw-2rem))]` —
+  never wider than the viewport minus a small margin, capped at 320px on
+  larger screens. Added `break-words` to the message text as well.
+
+### Checklist
+
+- [ ] **Patron applications:** as patron/matron, open **Applications** →
+      confirm full applicant name/student ID/programme/gender now show,
+      and Allocate/Waitlist/Reject all work exactly as they do for admin.
+- [ ] **Student nav unaffected:** sign in as a student → confirm the full
+      Accommodation group (Find a Room, Apply, My Applications, etc.)
+      still shows.
+- [ ] **Staff nav decluttered:** sign in as chairperson, patron/matron,
+      and admin → confirm none of them see "Apply For A Room" or the
+      rest of the student group.
+- [ ] **Dropdowns:** open the notification bell and the avatar menu →
+      confirm each closes when you click anywhere outside it → at a
+      narrow mobile width, open the notification dropdown → confirm it
+      stays fully on-screen with readable, wrapped text.
+

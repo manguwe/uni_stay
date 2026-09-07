@@ -55,8 +55,7 @@ export default function UserManagement() {
         <div>
           <h1 className="text-2xl mb-1">User Management</h1>
           <p className="text-body/70 text-sm">
-            Change roles and hostel assignments — this replaces the manual SQL promotion process
-            used in earlier phases.
+            Manage user roles and hostel assignments for staff accounts.
           </p>
         </div>
         <select

@@ -39,9 +39,8 @@ export default function AllComplaints() {
         <BackButton />
         <h1 className="text-2xl mb-1">All Complaints</h1>
         <p className="text-body/70 text-sm">
-          Full visibility across every hostel. Overriding status or reassigning here still appends
-          to the complaint's timeline (via <code>admin_override_complaint()</code>), so the audit
-          trail stays complete even for admin actions.
+          Full visibility across every hostel. Admin actions are still recorded in the complaint's
+          history, so nothing is lost.
         </p>
       </div>
 

@@ -81,9 +81,7 @@ export default function EditUserModal({ user, currentHostelIds, onClose, onSaved
               {hostels.length === 0 && <p className="text-xs text-body/50">No hostels yet.</p>}
             </div>
             <p className="text-xs text-body/50 mt-1">
-              A chairperson/patron can cover more than one hostel — see
-              staff_hostel_assignments in the Phase 3 SQL for why this is a join table, not a
-              single column.
+              A chairperson/patron can be assigned to more than one hostel.
             </p>
           </div>
         )}

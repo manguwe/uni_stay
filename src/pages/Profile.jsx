@@ -82,7 +82,7 @@ export default function Profile() {
       {profileRequired && !isComplete && (
         <div className="info-callout mb-4">
           Please complete your profile before applying for a room — this fills in your student ID
-          and matches you to the correct gender-designated hostel (KB §8a).
+          and matches you to the correct gender-designated hostel.
         </div>
       )}
 
