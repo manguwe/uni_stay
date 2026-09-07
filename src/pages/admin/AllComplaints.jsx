@@ -7,6 +7,7 @@ import {
 } from '../../lib/complaints'
 import ComplaintStatusBadge from '../../components/ComplaintStatusBadge'
 import ComplaintTimeline from '../../components/ComplaintTimeline'
+import BackButton from '../../components/BackButton'
 
 const CATEGORY_LABEL = Object.fromEntries(COMPLAINT_CATEGORIES.map((c) => [c.value, c.label]))
 
@@ -35,6 +36,7 @@ export default function AllComplaints() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
+        <BackButton />
         <h1 className="text-2xl mb-1">All Complaints</h1>
         <p className="text-body/70 text-sm">
           Full visibility across every hostel. Overriding status or reassigning here still appends

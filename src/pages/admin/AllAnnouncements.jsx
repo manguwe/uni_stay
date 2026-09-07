@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchAnnouncements, deleteAnnouncement, scopeLabel } from '../../lib/announcements'
+import BackButton from '../../components/BackButton'
 
 export default function AllAnnouncements() {
   const [announcements, setAnnouncements] = useState([])
@@ -31,6 +32,7 @@ export default function AllAnnouncements() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
+        <BackButton />
         <h1 className="text-2xl mb-1">All Announcements</h1>
         <p className="text-body/70 text-sm">
           Every announcement across every hostel, regardless of scope — including ones created by

@@ -708,3 +708,62 @@ Dashboard) and `AllAnnouncements.jsx`.
       Payment Verification, and every other admin screen still show
       full cross-hostel data, unaffected.
 
+---
+
+## Fix batch: 404 on refresh, mobile nav, sticky sidebar, back navigation
+
+All four were confirmed against the actual source before changing
+anything (exact file/line matched the report in every case).
+
+### 1. `vercel.json`
+
+Added at the project root with the SPA rewrite rule. This only takes
+effect on redeploy — nothing to run locally to test it, just verify
+after your next Vercel deploy.
+
+### 2 & 3. Mobile drawer + sticky sidebar
+
+`Layout.jsx` now owns the open/closed state and passes it down —
+`TopBar`'s hamburger button had genuinely no `onClick` at all before this
+(confirmed by reading the file, not assumed). `Sidebar.jsx` now renders
+two things: the same always-visible desktop `<aside>` (now `sticky
+top-16 h-[calc(100vh-4rem)] overflow-y-auto` instead of a plain
+`min-h-`, so it stays put while the page scrolls) and, only in the DOM
+while `open` is true, a `fixed` mobile drawer with a dark overlay.
+Tapping a nav link or the overlay closes it via the same `onClose`.
+
+### 4. Back button
+
+New `src/components/BackButton.jsx` (`useNavigate(-1)`, styled to match
+the design system, `print:hidden` built in so it never shows up on the
+Roster printout). Added to 9 screens — every genuine drill-down from a
+dashboard/list that didn't already have a breadcrumb doing this job:
+`SubmitComplaint`, `ReviewQueue` (covers both `/admin/applications` and
+`/patron/applications` — same component, mounted twice),
+`PaymentVerificationQueue` (same, both admin and patron routes),
+`AllApplications`, `AllComplaints`, `AllAnnouncements`, `Roster`,
+`UserManagement`, `Finance`.
+
+**Deliberately skipped:** `ChairpersonDashboard`/`PatronDashboard`
+(complaints) and `CreateAnnouncement` — these are top-level landing
+destinations reached directly from the sidebar or `RoleLanding`, not
+drill-downs from another in-app screen, so a "back" affordance there
+wouldn't have a sensible destination. `Inventory.jsx` already has its own
+breadcrumb ("← All hostels") and was correctly left alone, matching the
+report's own list of exceptions.
+
+### Checklist
+
+- [ ] **404 fix:** after redeploying to Vercel, hard-refresh on a
+      non-home route (e.g. `/accommodation/explore`) → confirm it loads
+      instead of 404ing.
+- [ ] **Mobile drawer:** at a mobile-width viewport, tap the hamburger →
+      confirm a real drawer slides in with a dark overlay behind it → tap
+      a nav item → confirm it navigates AND closes the drawer → reopen
+      and tap the overlay → confirm it closes without navigating.
+- [ ] **Sticky sidebar:** open the Admin Dashboard (tall enough to
+      scroll) → scroll down → confirm the sidebar stays visible the
+      whole time.
+- [ ] **Back buttons:** confirm at least 3 of the 9 listed screens now
+      show a working "← Back" that returns to wherever you came from.
+

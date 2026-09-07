@@ -42,7 +42,7 @@ const PATRON_ITEMS = [
   { label: 'Post Announcement', to: '/announcements/new', disabled: false },
 ]
 
-function NavGroup({ title, items }) {
+function NavGroup({ title, items, onNavigate }) {
   return (
     <div className="mb-6">
       <p className="px-4 mb-2 text-xs font-semibold tracking-wider text-white/50 uppercase">
@@ -64,6 +64,7 @@ function NavGroup({ title, items }) {
             ) : (
               <NavLink
                 to={item.to}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   `block px-4 py-2 mx-2 rounded-btn text-sm font-medium transition-colors ${
                     isActive
@@ -82,15 +83,45 @@ function NavGroup({ title, items }) {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose }) {
   const { isAdmin, profile } = useAuth()
+
+  function renderGroups(onNavigate) {
+    return (
+      <>
+        <NavGroup title="Main" items={MAIN_ITEMS} onNavigate={onNavigate} />
+        <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} onNavigate={onNavigate} />
+        {profile?.role === 'chairperson' && (
+          <NavGroup title="Chairperson" items={CHAIRPERSON_ITEMS} onNavigate={onNavigate} />
+        )}
+        {profile?.role === 'patron_matron' && (
+          <NavGroup title="Patron/Matron" items={PATRON_ITEMS} onNavigate={onNavigate} />
+        )}
+        {isAdmin && <NavGroup title="Admin" items={ADMIN_ITEMS} onNavigate={onNavigate} />}
+      </>
+    )
+  }
+
   return (
-    <aside className="hidden md:flex md:flex-col w-64 shrink-0 bg-brand-primary min-h-[calc(100vh-4rem)] pt-6">
-      <NavGroup title="Main" items={MAIN_ITEMS} />
-      <NavGroup title="Accommodation" items={ACCOMMODATION_ITEMS} />
-      {profile?.role === 'chairperson' && <NavGroup title="Chairperson" items={CHAIRPERSON_ITEMS} />}
-      {profile?.role === 'patron_matron' && <NavGroup title="Patron/Matron" items={PATRON_ITEMS} />}
-      {isAdmin && <NavGroup title="Admin" items={ADMIN_ITEMS} />}
-    </aside>
+    <>
+      {/* Desktop: always visible, sticky under the top bar so it stays in
+          view while the page content scrolls (previously scrolled away on
+          any page taller than the viewport, e.g. the admin dashboard). */}
+      <aside className="hidden md:flex md:flex-col w-64 shrink-0 bg-brand-primary sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto pt-6">
+        {renderGroups()}
+      </aside>
+
+      {/* Mobile: real off-canvas drawer, only in the DOM while open — the
+          hamburger button previously had no handler and there was no
+          drawer variant at all below the md breakpoint. */}
+      {open && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+          <aside className="fixed inset-y-0 left-0 w-64 bg-brand-primary pt-6 overflow-y-auto flex flex-col">
+            {renderGroups(onClose)}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }

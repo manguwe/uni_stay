@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
 
-export default function TopBar() {
+export default function TopBar({ onToggleSidebar }) {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -20,6 +20,7 @@ export default function TopBar() {
     <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button
+          onClick={onToggleSidebar}
           className="p-2 rounded-btn hover:bg-gray-100 md:hidden"
           aria-label="Toggle menu"
         >

@@ -8,6 +8,7 @@ import {
 import ApplicationCard from '../../components/admin/ApplicationCard'
 import AllocateBedModal from '../../components/admin/AllocateBedModal'
 import RejectModal from '../../components/admin/RejectModal'
+import BackButton from '../../components/BackButton'
 
 export default function ReviewQueue() {
   const [applications, setApplications] = useState([])
@@ -57,6 +58,7 @@ export default function ReviewQueue() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
+        <BackButton />
         <h1 className="text-2xl mb-1">Application Review Queue</h1>
         <p className="text-body/70 text-sm">Allocate, waitlist, or reject pending applications.</p>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchAllocatedRoster } from '../../lib/roster'
 import PaymentStatusBadge from '../../components/PaymentStatusBadge'
+import BackButton from '../../components/BackButton'
 
 export default function Roster() {
   const [roster, setRoster] = useState([])
@@ -72,6 +73,7 @@ export default function Roster() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      <BackButton />
       <div className="mb-6 flex items-start justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl mb-1">Allocated Students Roster</h1>

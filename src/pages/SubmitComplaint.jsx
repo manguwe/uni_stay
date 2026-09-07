@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { COMPLAINT_CATEGORIES, submitComplaint } from '../lib/complaints'
 import { fetchMyActiveAllocation } from '../lib/payments'
-import {
-  fetchHostels,
-  fetchBlocksForHostel,
-  fetchFloorsForParent,
-  fetchFlatsForParent,
-  fetchRoomsForParent,
-} from '../lib/hierarchy'
+import { fetchHostels, fetchBlocksForHostel, fetchFloorsForParent, fetchFlatsForParent, fetchRoomsForParent } from '../lib/hierarchy'
+import BackButton from '../components/BackButton'
 
 export default function SubmitComplaint() {
   const { user } = useAuth()
@@ -162,6 +157,7 @@ export default function SubmitComplaint() {
   return (
     <div className="max-w-xl mx-auto">
       <div className="mb-6">
+        <BackButton label="Back to My Complaints" />
         <h1 className="text-2xl mb-1">Submit a Complaint</h1>
         <p className="text-body/70 text-sm">
           Goes to your hostel's chairperson first, per the escalation path (KB §11).

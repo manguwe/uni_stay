@@ -3,6 +3,7 @@ import { fetchPaymentQueue, confirmPayment, getReceiptSignedUrl } from '../../li
 import { releaseBed } from '../../lib/applications'
 import RejectPaymentModal from '../../components/admin/RejectPaymentModal'
 import WaitlistPromotionModal from '../../components/admin/WaitlistPromotionModal'
+import BackButton from '../../components/BackButton'
 
 export default function PaymentVerificationQueue() {
   const [queue, setQueue] = useState({ awaitingVerification: [], overdue: [], deadlineDays: 7 })
@@ -66,6 +67,7 @@ export default function PaymentVerificationQueue() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
+        <BackButton />
         <h1 className="text-2xl mb-1">Payment Verification</h1>
         <p className="text-body/70 text-sm">
           Confirm or reject submitted proof of payment. Balances unpaid or unverified more than{' '}

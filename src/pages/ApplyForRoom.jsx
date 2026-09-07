@@ -132,7 +132,7 @@ export default function ApplyForRoom() {
         <div className="text-4xl mb-3">✅</div>
         <h1 className="text-lg mb-2">Application submitted</h1>
         <p className="text-sm text-body/70 mb-5">
-          Hostel staff will review your application.You can track its status any time from My
+          Hostel staff will review your application. You can track its status any time from My
           Applications.
         </p>
         <div className="flex gap-2 justify-center">

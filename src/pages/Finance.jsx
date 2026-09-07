@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { fetchMyActiveAllocation, uploadReceipt, submitPaymentProof, getReceiptSignedUrl } from '../lib/payments'
 import PaymentStatusBadge from '../components/PaymentStatusBadge'
+import BackButton from '../components/BackButton'
 
 export default function Finance() {
   const { user } = useAuth()
@@ -81,6 +82,7 @@ export default function Finance() {
 
   return (
     <div className="max-w-xl mx-auto">
+      <BackButton />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl mb-1">Finance</h1>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAllApplicationsAdmin } from '../../lib/applications'
 import ApplicationStatusBadge from '../../components/ApplicationStatusBadge'
+import BackButton from '../../components/BackButton'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
@@ -32,6 +33,7 @@ export default function AllApplications() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <BackButton />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl mb-1">All Applications</h1>

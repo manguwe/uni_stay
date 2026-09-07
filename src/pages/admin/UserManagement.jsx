@@ -5,6 +5,7 @@ import {
   fetchActiveAllocationsByStudent,
 } from '../../lib/userManagement'
 import EditUserModal from '../../components/admin/EditUserModal'
+import BackButton from '../../components/BackButton'
 
 const ROLE_LABEL = {
   student: 'Student',
@@ -49,6 +50,7 @@ export default function UserManagement() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      <BackButton />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl mb-1">User Management</h1>
