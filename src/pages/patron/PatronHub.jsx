@@ -87,6 +87,10 @@ export default function PatronHub() {
           <p className="font-semibold text-heading text-sm">Post Announcement</p>
           <p className="text-xs text-body/60 mt-1">Scoped to your assigned hostel</p>
         </Link>
+        <Link to="/patron/directory" className="card p-4 hover:shadow-md transition-shadow">
+          <p className="font-semibold text-heading text-sm">Student Directory</p>
+          <p className="text-xs text-body/60 mt-1">Allocated students in your hostel</p>
+        </Link>
       </div>
 
       <p className="text-xs text-body/40 mt-6">

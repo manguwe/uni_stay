@@ -58,7 +58,7 @@ export default function TopBar({ onToggleSidebar }) {
               <ChevronIcon />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-btn shadow-lg py-1 z-30">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-btn shadow-lg py-1 z-50">
                 <div className="px-3 py-2 text-xs text-body/60 border-b border-border">
                   {profile?.full_name || user.email}
                   {profile?.role === 'admin' && (

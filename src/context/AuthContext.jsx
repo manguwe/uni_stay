@@ -49,7 +49,18 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  async function signUp({ email, password, fullName, studentNumber, programme, yearOfStudy, gender }) {
+  async function signUp({
+    email,
+    password,
+    fullName,
+    studentNumber,
+    programme,
+    yearOfStudy,
+    gender,
+    idType,
+    idNumber,
+    phone,
+  }) {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
 
@@ -73,6 +84,9 @@ export function AuthProvider({ children }) {
           programme,
           year_of_study: yearOfStudy,
           gender,
+          id_document_type: idType,
+          id_document_number: idNumber,
+          phone_number: phone,
         })
         .eq('id', data.user.id)
       if (profileError) throw profileError

@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import IdDocumentField from '../components/IdDocumentField'
+import {
+  validateFullName,
+  validateStudentNumber,
+  validateEmail,
+  validateIdDocument,
+  validatePhone,
+} from '../lib/validators'
 
 export default function Signup() {
   const { signUp } = useAuth()
@@ -14,7 +22,11 @@ export default function Signup() {
     programme: '',
     yearOfStudy: '',
     gender: '',
+    idType: 'nrc',
+    idNumber: '',
+    phone: '',
   })
+  const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
@@ -23,9 +35,27 @@ export default function Signup() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  function validateAll() {
+    const errors = {
+      fullName: validateFullName(form.fullName),
+      studentNumber: validateStudentNumber(form.studentNumber),
+      email: validateEmail(form.email),
+      idNumber: validateIdDocument(form.idType, form.idNumber),
+      phone: validatePhone(form.phone),
+    }
+    if (!form.gender) errors.gender = 'Please select a gender.'
+    if (!form.programme.trim()) errors.programme = 'Programme is required.'
+    if (!form.yearOfStudy) errors.yearOfStudy = 'Year of study is required.'
+
+    const cleaned = Object.fromEntries(Object.entries(errors).filter(([, v]) => v))
+    setFieldErrors(cleaned)
+    return Object.keys(cleaned).length === 0
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    if (!validateAll()) return
     setSubmitting(true)
     try {
       const { hasSession } = await signUp({
@@ -36,6 +66,9 @@ export default function Signup() {
         programme: form.programme,
         yearOfStudy: form.yearOfStudy ? Number(form.yearOfStudy) : null,
         gender: form.gender,
+        idType: form.idType,
+        idNumber: form.idNumber,
+        phone: form.phone,
       })
       if (hasSession) {
         navigate('/', { replace: true })
@@ -76,58 +109,36 @@ export default function Signup() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-body block mb-1">Full name</label>
-            <input
-              required
-              value={form.fullName}
-              onChange={(e) => update('fullName', e.target.value)}
-              className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
-            />
-          </div>
+          <Field label="Full name" error={fieldErrors.fullName}>
+            <input value={form.fullName} onChange={(e) => update('fullName', e.target.value)} className="input" />
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-body block mb-1">Student number</label>
+            <Field label="Student number" error={fieldErrors.studentNumber}>
               <input
-                required
                 value={form.studentNumber}
                 onChange={(e) => update('studentNumber', e.target.value)}
-                className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
+                className="input"
               />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-body block mb-1">Year of study</label>
+            </Field>
+            <Field label="Year of study" error={fieldErrors.yearOfStudy}>
               <input
                 type="number"
                 min="1"
                 max="7"
-                required
                 value={form.yearOfStudy}
                 onChange={(e) => update('yearOfStudy', e.target.value)}
-                className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
+                className="input"
               />
-            </div>
+            </Field>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-body block mb-1">Programme</label>
-            <input
-              required
-              value={form.programme}
-              onChange={(e) => update('programme', e.target.value)}
-              className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
-            />
-          </div>
+          <Field label="Programme" error={fieldErrors.programme}>
+            <input value={form.programme} onChange={(e) => update('programme', e.target.value)} className="input" />
+          </Field>
 
-          <div>
-            <label className="text-sm font-medium text-body block mb-1">Gender</label>
-            <select
-              required
-              value={form.gender}
-              onChange={(e) => update('gender', e.target.value)}
-              className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
-            >
+          <Field label="Gender" error={fieldErrors.gender}>
+            <select value={form.gender} onChange={(e) => update('gender', e.target.value)} className="input">
               <option value="" disabled>
                 Select…
               </option>
@@ -137,31 +148,41 @@ export default function Signup() {
             <p className="text-xs text-body/50 mt-1">
               Used only to match you to a male/female-designated hostel per university policy.
             </p>
-          </div>
+          </Field>
+
+          <IdDocumentField
+            idType={form.idType}
+            idNumber={form.idNumber}
+            onIdTypeChange={(t) => update('idType', t)}
+            onIdNumberChange={(v) => update('idNumber', v)}
+            error={fieldErrors.idNumber}
+          />
+
+          <Field label="Phone number" error={fieldErrors.phone}>
+            <input
+              value={form.phone}
+              onChange={(e) => update('phone', e.target.value)}
+              placeholder="0977123456"
+              className="input"
+            />
+            <p className="text-xs text-body/50 mt-1">For calls/WhatsApp — used as your emergency contact once allocated.</p>
+          </Field>
 
           <hr className="border-border" />
 
-          <div>
-            <label className="text-sm font-medium text-body block mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-body block mb-1">Password</label>
+          <Field label="Email" error={fieldErrors.email}>
+            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="input" />
+          </Field>
+          <Field label="Password">
             <input
               type="password"
               required
               minLength={6}
               value={form.password}
               onChange={(e) => update('password', e.target.value)}
-              className="w-full border border-border rounded-btn px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-light"
+              className="input"
             />
-          </div>
+          </Field>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -177,6 +198,16 @@ export default function Signup() {
           </Link>
         </p>
       </div>
+    </div>
+  )
+}
+
+function Field({ label, error, children }) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-body block mb-1">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   )
 }

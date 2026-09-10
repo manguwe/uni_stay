@@ -39,6 +39,7 @@ const PATRON_ITEMS = [
   { label: 'Applications', to: '/patron/applications', disabled: false },
   { label: 'Payment Verification', to: '/patron/payments', disabled: false },
   { label: 'Complaints', to: '/patron/complaints', disabled: false },
+  { label: 'Student Directory', to: '/patron/directory', disabled: false },
   { label: 'Post Announcement', to: '/announcements/new', disabled: false },
 ]
 

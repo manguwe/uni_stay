@@ -31,6 +31,7 @@ import Inventory from './pages/admin/Inventory'
 import UserManagement from './pages/admin/UserManagement'
 import ChairpersonDashboard from './pages/chairperson/ChairpersonDashboard'
 import PatronDashboard from './pages/patron/PatronDashboard'
+import StudentDirectory from './pages/patron/StudentDirectory'
 import PatronHub from './pages/patron/PatronHub'
 import AllAnnouncements from './pages/admin/AllAnnouncements'
 
@@ -145,6 +146,14 @@ export default function App() {
           element={
             <PatronRoute>
               <ReviewQueue />
+            </PatronRoute>
+          }
+        />
+        <Route
+          path="/patron/directory"
+          element={
+            <PatronRoute>
+              <StudentDirectory />
             </PatronRoute>
           }
         />

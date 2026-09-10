@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { isProfileComplete } from '../pages/Profile'
 
 export function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -10,10 +11,11 @@ export function ProtectedRoute({ children }) {
   return children
 }
 
-// Gates the Apply For A Room flow specifically (KB §8a): a student can't
-// reach the application form until full_name, student_number, and gender
-// are all set on their profile. Redirects to /profile with enough state
-// for the Profile page to explain why, and to bounce back here on save.
+// Gates the Apply For A Room flow specifically (KB §8a/§8b): a student
+// can't reach the application form until their full profile — including
+// NRC/Passport and phone — is complete. Redirects to /profile with
+// enough state for the Profile page to explain why, and to bounce back
+// here on save.
 export function RequireCompleteProfile({ children }) {
   const { user, profile, loading } = useAuth()
   const location = useLocation()
@@ -21,8 +23,7 @@ export function RequireCompleteProfile({ children }) {
   if (loading) return <CenteredNote text="Loading…" />
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
 
-  const isComplete = !!(profile?.full_name && profile?.student_number && profile?.gender)
-  if (!isComplete) {
+  if (!isProfileComplete(profile)) {
     return <Navigate to="/profile" state={{ from: location, profileRequired: true }} replace />
   }
   return children

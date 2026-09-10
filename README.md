@@ -852,3 +852,78 @@ anonymous visitor has no profile row at all.
       narrow mobile width, open the notification dropdown → confirm it
       stays fully on-screen with readable, wrapped text.
 
+---
+
+## Full validation + Student Directory + notification dropdown re-check
+
+### Item 4 investigation (read this first)
+
+Checked both hypotheses against the actual code before writing anything:
+`App.jsx` imports `Layout` exactly once, wrapping the whole `<Routes>` —
+every role shares the identical `TopBar`/`NotificationBell` instance,
+confirmed architecturally, not assumed. The only role-conditional code
+near these components is an unrelated "Admin" text label inside the
+*avatar* dropdown's own content — nothing touches `NotificationBell`'s
+structure or positioning. **I could not find a code-level bug specific
+to Admin/Chairperson.** Most likely explanation: a stale cached build in
+whichever session tested those accounts — try a hard refresh first. I did
+harden one minor, real technical detail regardless: `100vw` includes the
+scrollbar's width on some browsers, so a long scrolling page (Admin
+Dashboard) can compute a very slightly larger safe-width than a short
+page — bumped the margin from `2rem` to `3rem` defensively. If it's still
+cut off after a hard refresh, that's a different bug and I'd want a fresh
+screenshot rather than guess further.
+
+### 1–2. New profile fields + full validation
+
+Run `supabase/phase8_directory_and_validation.sql` — adds `id_document_type`
+(`'nrc'`/`'passport'`), `id_document_number`, `phone_number` to `profiles`.
+No new RLS needed: the existing staff-visibility policy already covers
+these columns (RLS is row-level, not column-level) for any student who
+has an application in the staff member's assigned hostel — verified this
+before assuming a gap existed.
+
+New `src/lib/validators.js` — one function per field (name, student
+number, email, NRC, passport, phone), each returning `null` or an error
+string. New shared `IdDocumentField.jsx` (NRC/Passport type toggle +
+input) used by both `Signup.jsx` and `Profile.jsx`, so the two forms
+can't drift out of sync. `Profile.jsx` now exports `isProfileComplete()`
+as the single source of truth for what counts as a complete profile —
+`ProtectedRoute.jsx`'s `RequireCompleteProfile` guard imports it directly
+instead of duplicating the check, so adding the two new required fields
+only needed to happen in one place.
+
+### 3. Student Directory
+
+New `src/pages/patron/StudentDirectory.jsx` at `/patron/directory`,
+using a new `fetchStudentDirectory()` in `roster.js` — scoped to the
+caller's assigned hostel(s) entirely through existing RLS (Phase 6's
+allocations policy + Phase 7's staff-visibility policy), no new SQL.
+Admin's existing roster extended in place with NRC/Passport and Phone
+columns rather than a separate screen, per the brief.
+
+**Judgment call, flagged:** "confirmed allocation" — interpreted as "an
+active, unreleased allocation exists," not "payment confirmed," for
+consistency with the same phrase being explicitly corrected to mean this
+elsewhere in the build (roommate visibility, several fixes back). Happy
+to change if you meant payment-confirmed specifically.
+
+### Checklist
+
+- [ ] **Validation:** on Signup or Profile, try a 9-digit student ID, a
+      malformed NRC (e.g. missing the slashes), and a bad phone number →
+      confirm each shows its own inline error next to the right field,
+      not a generic message.
+- [ ] **Valid save:** fill in all fields correctly, including NRC/Passport
+      and phone → confirm it saves without error.
+- [ ] **Student Directory scoping:** as patron/matron, open **Student
+      Directory** → confirm only your assigned hostel's allocated
+      students appear, with NRC/Passport, phone, and full location.
+- [ ] **Roster columns:** as admin, open **Allocated Roster** → confirm
+      NRC/Passport and Phone columns now appear alongside the existing
+      ones.
+- [ ] **Notification dropdown:** hard-refresh an Admin and a Chairperson
+      session → confirm the dropdown now displays correctly. If not,
+      send a fresh screenshot — per the investigation above, this isn't
+      explained by anything findable in the code.
+

@@ -140,6 +140,8 @@ export default function Roster() {
                 <Th>Name</Th>
                 <Th>Student ID</Th>
                 <Th>Programme</Th>
+                <Th>NRC/Passport</Th>
+                <Th>Phone</Th>
                 <Th>Hostel</Th>
                 <Th>Block</Th>
                 <Th>Floor</Th>
@@ -155,6 +157,8 @@ export default function Roster() {
                   <Td>{row.studentName}</Td>
                   <Td>{row.studentNumber}</Td>
                   <Td>{row.programme}</Td>
+                  <Td>{row.idDocumentNumber}</Td>
+                  <Td>{row.phoneNumber}</Td>
                   <Td>{row.hostelName}</Td>
                   <Td>{row.blockName || '—'}</Td>
                   <Td>{row.floorName || '—'}</Td>
