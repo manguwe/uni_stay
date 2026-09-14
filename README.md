@@ -927,3 +927,80 @@ to change if you meant payment-confirmed specifically.
       send a fresh screenshot — per the investigation above, this isn't
       explained by anything findable in the code.
 
+---
+
+## Final polish — real crest + demo seed data
+
+### 1. Crest
+
+Couldn't fetch the image — `web_fetch` explicitly can't extract binary
+image content, and this environment's container has no network access
+for a direct download either. **Please attach the crest file directly:**
+square PNG (transparent background preferred) or SVG, ideally 256×256px,
+saved as `public/crest.png` (exact filename — or `public/crest.svg` if
+you update the one line noted below). `TopBar.jsx`'s new `CrestImage`
+component references `/crest.png` and falls back to the 🎓 emoji
+automatically via `onError` if the file isn't there yet, so nothing
+looks broken in the meantime — drop the file in and refresh, no other
+change needed.
+
+### 2. Demo seed data
+
+`supabase/demo_seed_data.sql` — **please run this AND test every login
+well before you're on stage**, not for the first time minutes before
+presenting. It inserts directly into Supabase's `auth.users`/
+`auth.identities` tables to create ready-to-use accounts without the
+signup UI — a standard technique, but one that touches managed internals
+that can vary slightly by project version. If any single account can't
+log in, the reliable fallback is documented at the top of the file: sign
+that one up normally through `/signup`, then re-run the script (it's
+idempotent and will find + configure the account either way).
+
+**Safe to re-run** — it deletes and recreates only the fixed
+`@edenhostel.test` demo accounts and the "Unity Hostel" it creates;
+nothing else in your database is touched. Deletion order handles every
+non-cascading audit FK (`reviewed_by`, `allocated_by`, `verified_by`,
+`actor_id`, `created_by`) correctly — verified this before writing the
+delete statements, not assumed.
+
+**Every seeded account uses the password `Demo12345!`.**
+
+| Email | Role | State |
+|---|---|---|
+| `admin.demo@edenhostel.test` | Admin | Full access, reviewed the rejected/waitlisted applications below |
+| `chair.demo@edenhostel.test` | Chairperson | Assigned to New Hostel |
+| `patron.demo@edenhostel.test` | Patron/Matron | Assigned to New Hostel |
+| `student.confirmed@edenhostel.test` | Student | Allocated (New Hostel, Room 201, Bed 1), payment **confirmed** — roommates visible |
+| `student.roommate@edenhostel.test` | Student | Allocated (New Hostel, Room 201, Bed 2), payment **confirmed** — same room as above, demonstrates roommate visibility |
+| `student.awaiting@edenhostel.test` | Student | Allocated (New Hostel, Room 101, Bed 2), payment **awaiting verification** — ready for patron to confirm live |
+| `student.waitlisted@edenhostel.test` | Student | **Waitlisted** for Unity Hostel (mixed) — no assigned staff there, demonstrates admin's fallback role |
+| `student.rejected@edenhostel.test` | Student | **Rejected** — gender-mismatch reason against New Hostel (male) |
+| `student.complaint.progress@edenhostel.test` | Student | Allocated (New Hostel, Room 103) + complaint **escalated** (plumbing, submitted → reviewed → escalated) |
+| `student.complaint.resolved@edenhostel.test` | Student | Allocated (Ruth Hostel, Room 101) + complaint **resolved** (electrical, full 5-step timeline) |
+
+**Hostels after seeding:** New Hostel (male, existing), Ruth Hostel
+(female, existing), Unity Hostel (mixed, new — 18 beds, ~67% occupied, 2
+vacant, 1 reserved, 1 maintenance).
+
+**Announcements:** one hostel-scoped (Patron, New Hostel, water shutdown
+notice), one all-students (Admin, welcome message).
+
+### Checklist
+
+- [ ] **Crest:** after adding `public/crest.png`, hard-refresh → confirm
+      the real crest renders in the top bar, correctly sized/cropped.
+- [ ] **Seed script runs clean:** run `demo_seed_data.sql` once → confirm
+      no errors → run it a **second time** immediately → confirm it
+      completes without duplicate-key errors (proves the idempotency).
+- [ ] **Every account logs in:** sign in as all 10 accounts above with
+      `Demo12345!` → confirm each lands on the correct role-appropriate
+      screen (RoleLanding).
+- [ ] **Roommates:** sign in as `student.confirmed` → My Accommodation →
+      confirm Kondwani Phiri shows as a roommate.
+- [ ] **Live demo action:** sign in as `patron.demo` → Payment
+      Verification → confirm the awaiting-verification payment for Bwalya
+      Kalunga is there and ready to confirm live.
+- [ ] **Complaint timelines:** check both complaint accounts' timelines
+      render the full multi-step history correctly, including actor
+      names.
+

@@ -31,10 +31,7 @@ export default function TopBar({ onToggleSidebar }) {
           <GridIcon />
         </button>
         <div className="flex items-center gap-2">
-          {/* Eden crest placeholder — swap for the real crest asset */}
-          <div className="w-9 h-9 rounded-full bg-info-bg flex items-center justify-center text-heading font-bold">
-            🎓
-          </div>
+          <CrestImage />
           <span className="font-semibold text-heading text-lg tracking-tight">AcademiX</span>
         </div>
       </div>
@@ -100,6 +97,30 @@ function ChevronIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function CrestImage() {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    // Falls back here if public/crest.png hasn't been added yet, or 404s —
+    // keeps the top bar looking intentional rather than showing a broken
+    // image icon in the meantime.
+    return (
+      <div className="w-9 h-9 rounded-full bg-info-bg flex items-center justify-center text-heading font-bold">
+        🎓
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src="/crest.png"
+      alt="Eden University crest"
+      className="w-9 h-9 rounded-full object-cover shrink-0"
+      onError={() => setFailed(true)}
+    />
   )
 }
 

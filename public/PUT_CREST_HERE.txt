@@ -1,0 +1,9 @@
+Drop the real Eden University crest here as `crest.png` (this exact
+filename — src/components/TopBar.jsx references it as `/crest.png`).
+
+Spec: square image, ideally 256×256px, PNG with a transparent
+background preferred (SVG also works — just also update the `src` in
+TopBar.jsx's CrestImage component from `/crest.png` to `/crest.svg`).
+
+Until this file is added, the top bar falls back to a 🎓 emoji
+automatically — nothing will look broken in the meantime.
