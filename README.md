@@ -946,6 +946,17 @@ change needed.
 
 ### 2. Demo seed data
 
+**Fixed since the last version:** the script previously hardcoded specific
+beds from the original Phase 1 seed data (New Hostel Room 201, etc.) — the
+exact beds repeatedly used as manual testing targets throughout this whole
+build. Any one of those beds already being allocated to a real test
+student (from ordinary testing, unrelated to this script) would collide
+with the seed script's own attempt to allocate it, and the previous
+cleanup step had no way to know about or undo that. Fixed by creating
+**dedicated rooms** (`D01`/`D02`/`D03` in New Hostel, `D01` in Ruth
+Hostel) fresh inside this same script, isolated from anything else in the
+database — the same approach Unity Hostel's rooms already used safely.
+
 `supabase/demo_seed_data.sql` — **please run this AND test every login
 well before you're on stage**, not for the first time minutes before
 presenting. It inserts directly into Supabase's `auth.users`/
@@ -970,13 +981,13 @@ delete statements, not assumed.
 | `admin.demo@edenhostel.test` | Admin | Full access, reviewed the rejected/waitlisted applications below |
 | `chair.demo@edenhostel.test` | Chairperson | Assigned to New Hostel |
 | `patron.demo@edenhostel.test` | Patron/Matron | Assigned to New Hostel |
-| `student.confirmed@edenhostel.test` | Student | Allocated (New Hostel, Room 201, Bed 1), payment **confirmed** — roommates visible |
-| `student.roommate@edenhostel.test` | Student | Allocated (New Hostel, Room 201, Bed 2), payment **confirmed** — same room as above, demonstrates roommate visibility |
-| `student.awaiting@edenhostel.test` | Student | Allocated (New Hostel, Room 101, Bed 2), payment **awaiting verification** — ready for patron to confirm live |
+| `student.confirmed@edenhostel.test` | Student | Allocated (New Hostel, Room D01, Bed 1), payment **confirmed** — roommates visible |
+| `student.roommate@edenhostel.test` | Student | Allocated (New Hostel, Room D01, Bed 2), payment **confirmed** — same room as above, demonstrates roommate visibility |
+| `student.awaiting@edenhostel.test` | Student | Allocated (New Hostel, Room D02), payment **awaiting verification** — ready for patron to confirm live |
 | `student.waitlisted@edenhostel.test` | Student | **Waitlisted** for Unity Hostel (mixed) — no assigned staff there, demonstrates admin's fallback role |
 | `student.rejected@edenhostel.test` | Student | **Rejected** — gender-mismatch reason against New Hostel (male) |
-| `student.complaint.progress@edenhostel.test` | Student | Allocated (New Hostel, Room 103) + complaint **escalated** (plumbing, submitted → reviewed → escalated) |
-| `student.complaint.resolved@edenhostel.test` | Student | Allocated (Ruth Hostel, Room 101) + complaint **resolved** (electrical, full 5-step timeline) |
+| `student.complaint.progress@edenhostel.test` | Student | Allocated (New Hostel, Room D03) + complaint **escalated** (plumbing, submitted → reviewed → escalated) |
+| `student.complaint.resolved@edenhostel.test` | Student | Allocated (Ruth Hostel, Room D01) + complaint **resolved** (electrical, full 5-step timeline) |
 
 **Hostels after seeding:** New Hostel (male, existing), Ruth Hostel
 (female, existing), Unity Hostel (mixed, new — 18 beds, ~67% occupied, 2

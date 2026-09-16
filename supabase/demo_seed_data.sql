@@ -1,11 +1,22 @@
 -- ============================================================================
 -- Eden Hostel Portal — Demo seed data for the competition presentation
 --
--- SAFE TO RE-RUN: every demo account uses a fixed, clearly-demo-only email
--- address (@edenhostel.test). Section 0 deletes anything previously
--- seeded under those emails / the "Unity Hostel" name before recreating
--- it, so running this twice never duplicates data, and you can reset to
--- a clean demo state any time before the actual presentation.
+-- SAFE TO RE-RUN. Two things make this idempotent:
+--   1. Every demo account uses a fixed, clearly-demo-only email address
+--      (@edenhostel.test). Section 0 deletes anything previously seeded
+--      under those emails before recreating it.
+--   2. Demo allocations use DEDICATED rooms (room numbers "D01"/"D02"/
+--      "D03"), created fresh by this script inside New Hostel and Ruth
+--      Hostel, rather than reusing whichever beds happened to be vacant
+--      in the original Phase 1 seed data. This was the actual bug in
+--      the previous version: it hardcoded specific Phase 1 beds
+--      (New Hostel Room 201, etc.) that had already been allocated to a
+--      real test student at some point during ordinary manual testing,
+--      completely unrelated to this script — so it collided with
+--      whatever real state happened to exist there. Dedicated,
+--      script-owned rooms can never collide with anything else in the
+--      database, and are exactly as easy to clean up as Unity Hostel
+--      already was.
 --
 -- IMPORTANT — READ BEFORE THE DEMO, NOT DURING IT:
 -- This script inserts directly into Supabase's own auth.users /
@@ -14,24 +25,23 @@
 -- Supabase projects, but it touches managed internals that can vary
 -- slightly by project/Postgres version. Please run this AND test that
 -- every account below can actually log in with plenty of time to spare
--- before you're on stage — don't run it for the first time minutes
--- before presenting. If any single account fails to log in for any
--- reason, the reliable fallback is: sign up that one account normally
--- through /signup with the same email, then re-run just Section 2
--- onward (the "configure this account" UPDATE statements use email
--- lookups, so they'll still find and correctly configure an account
--- created that way).
+-- before you're on stage. If any single account fails to log in, the
+-- reliable fallback is: sign up that one account normally through
+-- /signup with the same email, then re-run this script (the "configure
+-- this account" UPDATE statements use email lookups, so they'll still
+-- find and correctly configure an account created that way).
 --
 -- Every seeded account uses the same password: Demo12345!
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
 -- SECTION 0 — Clean slate for demo data only (safe re-run)
--- Order matters: student-related rows first (cascades away everything
--- they created), THEN staff accounts (safe once nothing references them
--- via reviewed_by/allocated_by/verified_by/actor_id, none of which
--- cascade), THEN the physical hostel (safe once no application/complaint/
--- announcement still points at it).
+-- Order matters throughout: student-related rows first (cascades away
+-- everything they created), THEN the dedicated demo rooms (safe once no
+-- hostel_applications still points at them — room_id has no cascade),
+-- THEN staff accounts (safe once nothing references them via
+-- reviewed_by/allocated_by/verified_by/actor_id, none of which cascade),
+-- THEN Unity Hostel.
 -- ---------------------------------------------------------------------------
 delete from announcements
 where created_by in (
@@ -49,6 +59,10 @@ delete from auth.users where email in (
   'student.complaint.resolved@edenhostel.test'
 );
 
+delete from rooms
+where room_number like 'D%'
+  and hostel_id in (select id from hostels where name in ('New Hostel', 'Ruth Hostel'));
+
 delete from auth.users where email in (
   'admin.demo@edenhostel.test',
   'chair.demo@edenhostel.test',
@@ -56,14 +70,6 @@ delete from auth.users where email in (
 );
 
 delete from hostels where name = 'Unity Hostel';
-
--- ============================================================================
--- SECTION 1 — Accounts, hostel, and every demo scenario
---
--- One big DO block so all the generated ids (accounts, rooms, beds,
--- applications, allocations) can be threaded through local variables
--- exactly like the Phase 1 seed script did.
--- ============================================================================
 
 -- ============================================================================
 -- Session-scoped helper (pg_temp — exists only for this SQL session, no
@@ -109,6 +115,10 @@ begin
 end;
 $$;
 
+-- ============================================================================
+-- SECTION 1 — Accounts, hostels, and every demo scenario
+-- ============================================================================
+
 do $$
 declare
   v_password text := crypt('Demo12345!', gen_salt('bf'));
@@ -133,11 +143,20 @@ declare
   v_student_complaint_progress_id uuid;
   v_student_complaint_resolved_id uuid;
 
-  v_bed_room201_1 uuid;
-  v_bed_room201_2 uuid;
-  v_bed_room101_2 uuid;
-  v_bed_room103_2 uuid;
-  v_bed_ruth_room101_1 uuid;
+  -- Dedicated demo rooms/beds (New Hostel D01/D02/D03, Ruth Hostel D01) —
+  -- created fresh in Section 2b below, never reused from Phase 1's
+  -- originally-seeded rooms. Named after their demo purpose, not a room
+  -- number, since that's what they actually represent here.
+  v_room_confirmed_id uuid;
+  v_room_awaiting_id uuid;
+  v_room_complaint_progress_id uuid;
+  v_room_complaint_resolved_id uuid;
+
+  v_bed_confirmed uuid;
+  v_bed_roommate uuid;
+  v_bed_awaiting uuid;
+  v_bed_complaint_progress uuid;
+  v_bed_complaint_resolved uuid;
 
   v_app_confirmed_id uuid;
   v_app_roommate_id uuid;
@@ -153,7 +172,6 @@ declare
 
   v_complaint_progress_id uuid;
   v_complaint_resolved_id uuid;
-
 begin
   select id into v_new_hostel_id from hostels where name = 'New Hostel';
   select id into v_ruth_hostel_id from hostels where name = 'Ruth Hostel';
@@ -178,7 +196,7 @@ begin
 
   -- -------------------------------------------------------------------
   -- Student accounts — every profile field complete (NRC/Passport and
-  -- phone are now required by the profile-completion gate)
+  -- phone are required by the profile-completion gate)
   -- -------------------------------------------------------------------
   v_student_confirmed_id := pg_temp.create_demo_user('student.confirmed@edenhostel.test', v_password);
   update profiles set
@@ -275,6 +293,35 @@ begin
     (v_room_id, 'Bed 1', 'occupied'), (v_room_id, 'Bed 2', 'occupied');
 
   -- ============================================================================
+  -- SECTION 2b — Dedicated demo rooms in New Hostel + Ruth Hostel
+  --
+  -- Created fresh, fully owned by this script (room numbers "D01"/"D02"/
+  -- "D03" won't collide with any real numbering scheme), so demo
+  -- allocations below can NEVER collide with a bed some other test
+  -- session already allocated in the ORIGINAL Phase 1 rooms.
+  -- ============================================================================
+  insert into rooms (hostel_id, room_number, room_type, bed_capacity, facilities)
+  values (v_new_hostel_id, 'D01', '2-bed', 2, array['Wardrobe','Study desk','Power outlet'])
+  returning id into v_room_confirmed_id;
+  insert into beds (room_id, bed_label, status) values (v_room_confirmed_id, 'Bed 1', 'vacant') returning id into v_bed_confirmed;
+  insert into beds (room_id, bed_label, status) values (v_room_confirmed_id, 'Bed 2', 'vacant') returning id into v_bed_roommate;
+
+  insert into rooms (hostel_id, room_number, room_type, bed_capacity, facilities)
+  values (v_new_hostel_id, 'D02', '1-bed', 1, array['Wardrobe','Study desk'])
+  returning id into v_room_awaiting_id;
+  insert into beds (room_id, bed_label, status) values (v_room_awaiting_id, 'Bed 1', 'vacant') returning id into v_bed_awaiting;
+
+  insert into rooms (hostel_id, room_number, room_type, bed_capacity, facilities)
+  values (v_new_hostel_id, 'D03', '1-bed', 1, array['Wardrobe','Study desk'])
+  returning id into v_room_complaint_progress_id;
+  insert into beds (room_id, bed_label, status) values (v_room_complaint_progress_id, 'Bed 1', 'vacant') returning id into v_bed_complaint_progress;
+
+  insert into rooms (hostel_id, room_number, room_type, bed_capacity, facilities)
+  values (v_ruth_hostel_id, 'D01', '1-bed', 1, array['Wardrobe','Study desk'])
+  returning id into v_room_complaint_resolved_id;
+  insert into beds (room_id, bed_label, status) values (v_room_complaint_resolved_id, 'Bed 1', 'vacant') returning id into v_bed_complaint_resolved;
+
+  -- ============================================================================
   -- SECTION 3 — Applications, allocations, and payments
   --
   -- Written directly to the tables (not via the allocate_bed() RPC),
@@ -285,52 +332,38 @@ begin
   -- checks matter for real client traffic, not this.
   -- ============================================================================
 
-  select b.id into v_bed_room201_1 from beds b join rooms r on r.id = b.room_id
-    where r.hostel_id = v_new_hostel_id and r.room_number = '201' and b.bed_label = 'Bed 1';
-  select b.id into v_bed_room201_2 from beds b join rooms r on r.id = b.room_id
-    where r.hostel_id = v_new_hostel_id and r.room_number = '201' and b.bed_label = 'Bed 2';
-  select b.id into v_bed_room101_2 from beds b join rooms r on r.id = b.room_id
-    where r.hostel_id = v_new_hostel_id and r.room_number = '101' and b.bed_label = 'Bed 2';
-  select b.id into v_bed_room103_2 from beds b join rooms r on r.id = b.room_id
-    where r.hostel_id = v_new_hostel_id and r.room_number = '103' and b.bed_label = 'Bed 2';
-  select b.id into v_bed_ruth_room101_1 from beds b join rooms r on r.id = b.room_id
-    where r.hostel_id = v_ruth_hostel_id and r.room_number = '101' and b.bed_label = 'Bed 1';
-
   -- --- Students 1 & 2: allocated + payment CONFIRMED, same room (roommates) ---
   insert into hostel_applications (id, student_id, hostel_id, room_id, year_of_study, status, submitted_at, reviewed_at, reviewed_by)
-  select gen_random_uuid(), v_student_confirmed_id, v_new_hostel_id, r.id, 2, 'approved', now() - interval '14 days', now() - interval '13 days', v_patron_id
-  from rooms r where r.hostel_id = v_new_hostel_id and r.room_number = '201'
+  values (gen_random_uuid(), v_student_confirmed_id, v_new_hostel_id, v_room_confirmed_id, 2, 'approved', now() - interval '14 days', now() - interval '13 days', v_patron_id)
   returning id into v_app_confirmed_id;
 
   insert into allocations (id, application_id, bed_id, term, allocated_at, allocated_by)
-  values (gen_random_uuid(), v_app_confirmed_id, v_bed_room201_1, 'Current Term', now() - interval '13 days', v_patron_id)
+  values (gen_random_uuid(), v_app_confirmed_id, v_bed_confirmed, 'Current Term', now() - interval '13 days', v_patron_id)
   returning id into v_alloc_confirmed_id;
-  update beds set status = 'occupied' where id = v_bed_room201_1;
+  update beds set status = 'occupied' where id = v_bed_confirmed;
   insert into payment_records (allocation_id, amount_due, reference_number, status, submitted_at, verified_by, verified_at)
   values (v_alloc_confirmed_id, 1500.00, 'MM240001', 'confirmed', now() - interval '10 days', v_patron_id, now() - interval '9 days');
 
   insert into hostel_applications (id, student_id, hostel_id, room_id, year_of_study, status, submitted_at, reviewed_at, reviewed_by)
-  select gen_random_uuid(), v_student_roommate_id, v_new_hostel_id, r.id, 2, 'approved', now() - interval '12 days', now() - interval '11 days', v_patron_id
-  from rooms r where r.hostel_id = v_new_hostel_id and r.room_number = '201'
+  values (gen_random_uuid(), v_student_roommate_id, v_new_hostel_id, v_room_confirmed_id, 2, 'approved', now() - interval '12 days', now() - interval '11 days', v_patron_id)
   returning id into v_app_roommate_id;
 
   insert into allocations (id, application_id, bed_id, term, allocated_at, allocated_by)
-  values (gen_random_uuid(), v_app_roommate_id, v_bed_room201_2, 'Current Term', now() - interval '11 days', v_patron_id)
+  values (gen_random_uuid(), v_app_roommate_id, v_bed_roommate, 'Current Term', now() - interval '11 days', v_patron_id)
   returning id into v_alloc_roommate_id;
-  update beds set status = 'occupied' where id = v_bed_room201_2;
+  update beds set status = 'occupied' where id = v_bed_roommate;
   insert into payment_records (allocation_id, amount_due, reference_number, status, submitted_at, verified_by, verified_at)
   values (v_alloc_roommate_id, 1500.00, 'MM240002', 'confirmed', now() - interval '9 days', v_patron_id, now() - interval '8 days');
 
   -- --- Student 3: allocated, payment AWAITING VERIFICATION ---
   insert into hostel_applications (id, student_id, hostel_id, room_id, year_of_study, status, submitted_at, reviewed_at, reviewed_by)
-  select gen_random_uuid(), v_student_awaiting_id, v_new_hostel_id, r.id, 1, 'approved', now() - interval '6 days', now() - interval '5 days', v_patron_id
-  from rooms r where r.hostel_id = v_new_hostel_id and r.room_number = '101'
+  values (gen_random_uuid(), v_student_awaiting_id, v_new_hostel_id, v_room_awaiting_id, 1, 'approved', now() - interval '6 days', now() - interval '5 days', v_patron_id)
   returning id into v_app_awaiting_id;
 
   insert into allocations (id, application_id, bed_id, term, allocated_at, allocated_by)
-  values (gen_random_uuid(), v_app_awaiting_id, v_bed_room101_2, 'Current Term', now() - interval '5 days', v_patron_id)
+  values (gen_random_uuid(), v_app_awaiting_id, v_bed_awaiting, 'Current Term', now() - interval '5 days', v_patron_id)
   returning id into v_alloc_awaiting_id;
-  update beds set status = 'occupied' where id = v_bed_room101_2;
+  update beds set status = 'occupied' where id = v_bed_awaiting;
   insert into payment_records (allocation_id, amount_due, reference_number, status, submitted_at)
   values (v_alloc_awaiting_id, 1500.00, 'MM240003', 'awaiting_verification', now() - interval '1 day');
 
@@ -348,27 +381,25 @@ begin
 
   -- --- Student 6: allocated + complaint IN PROGRESS (submitted -> escalated) ---
   insert into hostel_applications (id, student_id, hostel_id, room_id, year_of_study, status, submitted_at, reviewed_at, reviewed_by)
-  select gen_random_uuid(), v_student_complaint_progress_id, v_new_hostel_id, r.id, 3, 'approved', now() - interval '20 days', now() - interval '19 days', v_patron_id
-  from rooms r where r.hostel_id = v_new_hostel_id and r.room_number = '103'
+  values (gen_random_uuid(), v_student_complaint_progress_id, v_new_hostel_id, v_room_complaint_progress_id, 3, 'approved', now() - interval '20 days', now() - interval '19 days', v_patron_id)
   returning id into v_app_complaint_progress_id;
 
   insert into allocations (id, application_id, bed_id, term, allocated_at, allocated_by)
-  values (gen_random_uuid(), v_app_complaint_progress_id, v_bed_room103_2, 'Current Term', now() - interval '19 days', v_patron_id)
+  values (gen_random_uuid(), v_app_complaint_progress_id, v_bed_complaint_progress, 'Current Term', now() - interval '19 days', v_patron_id)
   returning id into v_alloc_complaint_progress_id;
-  update beds set status = 'occupied' where id = v_bed_room103_2;
+  update beds set status = 'occupied' where id = v_bed_complaint_progress;
   insert into payment_records (allocation_id, amount_due, reference_number, status, submitted_at, verified_by, verified_at)
   values (v_alloc_complaint_progress_id, 1500.00, 'MM240004', 'confirmed', now() - interval '18 days', v_patron_id, now() - interval '17 days');
 
   -- --- Student 7: allocated + complaint RESOLVED (Ruth Hostel, female) ---
   insert into hostel_applications (id, student_id, hostel_id, room_id, year_of_study, status, submitted_at, reviewed_at, reviewed_by)
-  select gen_random_uuid(), v_student_complaint_resolved_id, v_ruth_hostel_id, r.id, 2, 'approved', now() - interval '25 days', now() - interval '24 days', v_admin_id
-  from rooms r where r.hostel_id = v_ruth_hostel_id and r.room_number = '101'
+  values (gen_random_uuid(), v_student_complaint_resolved_id, v_ruth_hostel_id, v_room_complaint_resolved_id, 2, 'approved', now() - interval '25 days', now() - interval '24 days', v_admin_id)
   returning id into v_app_complaint_resolved_id;
 
   insert into allocations (id, application_id, bed_id, term, allocated_at, allocated_by)
-  values (gen_random_uuid(), v_app_complaint_resolved_id, v_bed_ruth_room101_1, 'Current Term', now() - interval '24 days', v_admin_id)
+  values (gen_random_uuid(), v_app_complaint_resolved_id, v_bed_complaint_resolved, 'Current Term', now() - interval '24 days', v_admin_id)
   returning id into v_alloc_complaint_resolved_id;
-  update beds set status = 'occupied' where id = v_bed_ruth_room101_1;
+  update beds set status = 'occupied' where id = v_bed_complaint_resolved;
   insert into payment_records (allocation_id, amount_due, reference_number, status, submitted_at, verified_by, verified_at)
   values (v_alloc_complaint_resolved_id, 1500.00, 'MM240005', 'confirmed', now() - interval '23 days', v_admin_id, now() - interval '22 days');
 
@@ -377,10 +408,11 @@ begin
   -- ============================================================================
 
   insert into complaints (id, student_id, hostel_id, room_id, category, description, priority, status, escalated_at, created_at)
-  select gen_random_uuid(), v_student_complaint_progress_id, v_new_hostel_id, r.id,
+  values (
+    gen_random_uuid(), v_student_complaint_progress_id, v_new_hostel_id, v_room_complaint_progress_id,
     'plumbing', 'The shower in our room has been leaking steadily for three days and the floor stays wet.',
     'high', 'escalated', now() - interval '1 day', now() - interval '3 days'
-  from rooms r where r.hostel_id = v_new_hostel_id and r.room_number = '103'
+  )
   returning id into v_complaint_progress_id;
   -- log_complaint_submission() trigger already added the "submitted" entry.
   insert into complaint_updates (complaint_id, actor_id, action, comment, resulting_status, created_at)
@@ -389,10 +421,11 @@ begin
   values (v_complaint_progress_id, v_chair_id, 'escalated', 'Recurring leak, needs a plumber — escalating to Patron/Matron.', 'escalated', now() - interval '1 day');
 
   insert into complaints (id, student_id, hostel_id, room_id, category, description, priority, status, assigned_to, escalated_at, created_at)
-  select gen_random_uuid(), v_student_complaint_resolved_id, v_ruth_hostel_id, r.id,
+  values (
+    gen_random_uuid(), v_student_complaint_resolved_id, v_ruth_hostel_id, v_room_complaint_resolved_id,
     'electricity', 'One of the power outlets in our room sparked when I plugged in my laptop charger.',
     'high', 'resolved', 'Facilities — John Mwale', now() - interval '20 days', now() - interval '22 days'
-  from rooms r where r.hostel_id = v_ruth_hostel_id and r.room_number = '101'
+  )
   returning id into v_complaint_resolved_id;
   insert into complaint_updates (complaint_id, actor_id, action, comment, resulting_status, created_at)
   values (v_complaint_resolved_id, v_admin_id, 'reviewed', null, 'under_review', now() - interval '21 days');
